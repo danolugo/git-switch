@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { TerminalWindow } from "../components/TerminalWindow";
 import type { AppSettings } from "../types";
 
 interface SettingsProps {
@@ -38,19 +39,23 @@ export function Settings({ settings, onSave }: SettingsProps) {
 
   return (
     <section className="page">
-      <header className="page-header">
+      <header className="page-head">
         <div>
-          <h1>Settings</h1>
-          <p>Configure Git executable path and future tray behavior.</p>
+          <h1 className="page-title glitch">~/settings</h1>
+          <p className="page-sub">cat ~/.git-switch/config</p>
         </div>
       </header>
 
-      <article className="card">
-        <form className="profile-form" onSubmit={handleSubmit}>
-          <div className="form-grid">
-            <label>
-              Git executable path
+      <TerminalWindow title="configuration" flag="--env">
+        <form className="form" onSubmit={handleSubmit}>
+          <label className="field">
+            <span className="field-label">git executable path</span>
+            <span className="input-wrap">
+              <span className="prompt" aria-hidden="true">
+                bin&gt;
+              </span>
               <input
+                className="input"
                 value={draft.gitExecutable}
                 onChange={(event) =>
                   setDraft((current) => ({
@@ -60,10 +65,12 @@ export function Settings({ settings, onSave }: SettingsProps) {
                 }
                 placeholder="git"
               />
-            </label>
-          </div>
+            </span>
+          </label>
 
-          <label className="checkbox-row">
+          <hr className="divider" />
+
+          <label className="check-line">
             <input
               type="checkbox"
               checked={draft.sshSwitchingEnabled}
@@ -74,10 +81,11 @@ export function Settings({ settings, onSave }: SettingsProps) {
                 }))
               }
             />
-            Enable SSH key switching (v0.3)
+            <span className="check-box" aria-hidden="true" />
+            enable ssh key switching <span className="muted">// v0.3</span>
           </label>
 
-          <label className="checkbox-row">
+          <label className="check-line">
             <input
               type="checkbox"
               checked={draft.startMinimized}
@@ -88,19 +96,20 @@ export function Settings({ settings, onSave }: SettingsProps) {
                 }))
               }
             />
-            Start minimized to tray (v0.2)
+            <span className="check-box" aria-hidden="true" />
+            start minimized to tray <span className="muted">// v0.2</span>
           </label>
 
-          {error ? <p className="error-text">{error}</p> : null}
-          {saved ? <p className="success-text">Settings saved.</p> : null}
+          {error ? <div className="banner banner-error">{error}</div> : null}
+          {saved ? <div className="banner banner-ok">settings saved</div> : null}
 
           <div className="form-actions">
-            <button type="submit" disabled={saving}>
-              {saving ? "Saving..." : "Save settings"}
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? "...saving" : "[ save config ]"}
             </button>
           </div>
         </form>
-      </article>
+      </TerminalWindow>
     </section>
   );
 }

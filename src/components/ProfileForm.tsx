@@ -32,6 +32,30 @@ function toFormValues(profile?: GitProfile): ProfileFormValues {
   };
 }
 
+interface FieldProps {
+  label: string;
+  prompt: string;
+  optional?: boolean;
+  children: React.ReactNode;
+}
+
+function Field({ label, prompt, optional, children }: FieldProps) {
+  return (
+    <label className="field">
+      <span className="field-label">
+        {label}
+        {optional ? <span className="opt"> --optional</span> : null}
+      </span>
+      <span className="input-wrap">
+        <span className="prompt" aria-hidden="true">
+          {prompt}
+        </span>
+        {children}
+      </span>
+    </label>
+  );
+}
+
 export function ProfileForm({
   initial,
   onSubmit,
@@ -68,75 +92,75 @@ export function ProfileForm({
   }
 
   return (
-    <form className="profile-form" onSubmit={handleSubmit}>
+    <form className="form" onSubmit={handleSubmit}>
       <div className="form-grid">
-        <label>
-          Profile name
+        <Field label="profile name" prompt="label>">
           <input
+            className="input"
             value={values.name}
             onChange={(event) => updateField("name", event.target.value)}
-            placeholder="Work"
+            placeholder="Account label"
             required
           />
-        </label>
+        </Field>
 
-        <label>
-          Git username
+        <Field label="git username" prompt="name>">
           <input
+            className="input"
             value={values.userName}
             onChange={(event) => updateField("userName", event.target.value)}
-            placeholder="Giordano Lugo"
+            placeholder="Your Name"
             required
           />
-        </label>
+        </Field>
 
-        <label>
-          Git email
+        <Field label="git email" prompt="mail>">
           <input
+            className="input"
             type="email"
             value={values.userEmail}
             onChange={(event) => updateField("userEmail", event.target.value)}
-            placeholder="g.lugo@company.com"
+            placeholder="user@example.com"
             required
           />
-        </label>
+        </Field>
 
-        <label>
-          SSH key path (optional)
+        <Field label="ssh key path" prompt="ssh>" optional>
           <input
+            className="input"
             value={values.sshKey}
             onChange={(event) => updateField("sshKey", event.target.value)}
-            placeholder="C:\\Users\\you\\.ssh\\id_ed25519_work"
+            placeholder="C:\\path\\to\\private_key"
           />
-        </label>
+        </Field>
 
-        <label>
-          GPG signing key (optional)
+        <Field label="gpg signing key" prompt="gpg>" optional>
           <input
+            className="input"
             value={values.gpgKey}
             onChange={(event) => updateField("gpgKey", event.target.value)}
             placeholder="Key ID or fingerprint"
           />
-        </label>
+        </Field>
 
-        <label>
-          Default host (optional)
+        <Field label="default host" prompt="host>" optional>
           <input
+            className="input"
             value={values.host}
             onChange={(event) => updateField("host", event.target.value)}
             placeholder="github.com"
           />
-        </label>
+        </Field>
       </div>
 
-      {error ? <p className="error-text">{error}</p> : null}
+      {error ? <div className="banner banner-error">{error}</div> : null}
 
       <div className="form-actions">
-        <button type="button" className="secondary" onClick={onCancel}>
-          Cancel
+        <button type="button" className="btn" onClick={onCancel}>
+          [ cancel ]
         </button>
-        <button type="submit" disabled={saving}>
-          {saving ? "Saving..." : submitLabel}
+        <button type="submit" className="btn btn-primary" disabled={saving}>
+          {saving ? "...saving" : submitLabel}
         </button>
       </div>
     </form>

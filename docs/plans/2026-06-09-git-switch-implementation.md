@@ -99,9 +99,9 @@ Rust commands:
     {
       "id": "uuid",
       "name": "Work",
-      "userName": "Giordano Lugo",
-      "userEmail": "g.lugo@company.com",
-      "sshKey": "C:\\Users\\gio\\.ssh\\id_ed25519_work"
+      "userName": "Your Name",
+      "userEmail": "user@example.com",
+      "sshKey": "C:\\path\\to\\private_key"
     }
   ],
   "activeProfileId": "uuid",

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ProfileForm } from "../components/ProfileForm";
+import { TerminalWindow } from "../components/TerminalWindow";
 import type { GitProfile, ProfileFormValues } from "../types";
 
 interface ProfilesProps {
@@ -34,46 +35,47 @@ export function Profiles({
 
   return (
     <section className="page">
-      <header className="page-header">
+      <header className="page-head">
         <div>
-          <h1>Profiles</h1>
-          <p>Create and manage saved Git identities.</p>
+          <h1 className="page-title glitch">~/profiles</h1>
+          <p className="page-sub">ls -la ~/.git-switch/profiles</p>
         </div>
         {mode === "list" ? (
-          <button
-            type="button"
-            onClick={() => {
-              setMode("create");
-              setEditingProfile(null);
-            }}
-          >
-            Add profile
-          </button>
+          <div className="page-actions">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setMode("create");
+                setEditingProfile(null);
+              }}
+            >
+              [ + new profile ]
+            </button>
+          </div>
         ) : null}
       </header>
 
-      {error ? <p className="error-banner">{error}</p> : null}
+      {error ? <div className="banner banner-error">{error}</div> : null}
 
       {mode === "create" ? (
-        <article className="card">
-          <h2>New profile</h2>
+        <TerminalWindow title="new profile" flag="--create">
           <ProfileForm
-            submitLabel="Create profile"
+            submitLabel="[ create ]"
             onCancel={() => setMode("list")}
             onSubmit={async (values) => {
               await onCreate(values);
               setMode("list");
             }}
           />
-        </article>
+        </TerminalWindow>
       ) : null}
 
       {mode === "edit" && editingProfile ? (
-        <article className="card">
-          <h2>Edit profile</h2>
+        <TerminalWindow title={`edit: ${editingProfile.name}`} flag="--update">
           <ProfileForm
             initial={editingProfile}
-            submitLabel="Save changes"
+            submitLabel="[ save ]"
             onCancel={() => {
               setMode("list");
               setEditingProfile(null);
@@ -84,46 +86,66 @@ export function Profiles({
               setEditingProfile(null);
             }}
           />
-        </article>
+        </TerminalWindow>
       ) : null}
 
       {mode === "list" ? (
         <div className="profile-grid">
           {profiles.length === 0 ? (
-            <article className="card empty-card">
-              <p>No profiles yet. Add your first Git identity.</p>
-            </article>
+            <TerminalWindow title="empty" flag="--0-records" tone="amber">
+              <p className="empty">// no profiles saved. create your first.</p>
+            </TerminalWindow>
           ) : (
             profiles.map((profile) => (
-              <article key={profile.id} className="card profile-card">
-                <div className="profile-card-header">
-                  <h2>{profile.name}</h2>
-                  <div className="profile-actions">
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={() => {
-                        setEditingProfile(profile);
-                        setMode("edit");
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="danger"
-                      onClick={() => handleDelete(profile.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-                <p>{profile.userName}</p>
-                <p className="muted">{profile.userEmail}</p>
+              <TerminalWindow
+                key={profile.id}
+                title={profile.name}
+                flag="--profile"
+                className="profile-card"
+              >
+                <p className="kv">
+                  <span className="key">name</span>
+                  {profile.userName}
+                </p>
+                <p className="kv">
+                  <span className="key">email</span>
+                  {profile.userEmail}
+                </p>
                 {profile.sshKey ? (
-                  <p className="mono muted">{profile.sshKey}</p>
+                  <p className="kv">
+                    <span className="key">ssh</span>
+                    <span className="mono">{profile.sshKey}</span>
+                  </p>
                 ) : null}
-              </article>
+                {profile.host ? (
+                  <p className="kv">
+                    <span className="key">host</span>
+                    {profile.host}
+                  </p>
+                ) : null}
+
+                <hr className="divider" />
+
+                <div className="profile-actions">
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      setEditingProfile(profile);
+                      setMode("edit");
+                    }}
+                  >
+                    [ edit ]
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={() => handleDelete(profile.id)}
+                  >
+                    [ rm ]
+                  </button>
+                </div>
+              </TerminalWindow>
             ))
           )}
         </div>

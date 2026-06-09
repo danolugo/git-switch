@@ -55,12 +55,12 @@ fn read_config_value(
     key: &str,
 ) -> Result<Option<String>, String> {
     let mut command = Command::new(git_executable);
-    command.args(["config", "--get", key]);
+    command.arg("config");
 
     if let Some(path) = repo_path {
-        command.args(["--local"]).current_dir(path);
+        command.args(["--local", "--get", key]).current_dir(path);
     } else {
-        command.arg("--global");
+        command.args(["--global", "--get", key]);
     }
 
     let output = command
@@ -89,12 +89,14 @@ fn set_config_value(
     value: &str,
 ) -> Result<(), String> {
     let mut command = Command::new(git_executable);
-    command.args(["config", key, value]);
+    command.arg("config");
 
     if let Some(path) = repo_path {
-        command.args(["--local"]).current_dir(path);
+        command
+            .args(["--local", key, value])
+            .current_dir(path);
     } else {
-        command.arg("--global");
+        command.args(["--global", key, value]);
     }
 
     let output = command

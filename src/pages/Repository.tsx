@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { TerminalWindow } from "../components/TerminalWindow";
 import type { GitIdentity, GitProfile } from "../types";
 
 interface RepositoryProps {
@@ -44,55 +45,78 @@ export function Repository({ profiles, onApply }: RepositoryProps) {
 
   return (
     <section className="page">
-      <header className="page-header">
+      <header className="page-head">
         <div>
-          <h1>Repository mode</h1>
-          <p>Apply a profile only to a specific local repository.</p>
+          <h1 className="page-title glitch">~/repo</h1>
+          <p className="page-sub">git config --local user.* &lt;repo&gt;</p>
         </div>
       </header>
 
-      <article className="card">
+      <TerminalWindow title="repository identity" flag="--local">
         <div className="form-grid">
-          <label>
-            Repository folder
-            <input
-              value={repoPath}
-              onChange={(event) => setRepoPath(event.target.value)}
-              placeholder="C:\\code\\my-project"
-            />
+          <label className="field">
+            <span className="field-label">repository folder</span>
+            <span className="input-wrap">
+              <span className="prompt" aria-hidden="true">
+                path&gt;
+              </span>
+              <input
+                className="input"
+                value={repoPath}
+                onChange={(event) => setRepoPath(event.target.value)}
+                placeholder="C:\\code\\my-project"
+              />
+            </span>
           </label>
 
-          <label>
-            Profile
-            <select
-              value={selectedProfileId}
-              onChange={(event) => setSelectedProfileId(event.target.value)}
-            >
-              <option value="">Select a profile</option>
-              {profiles.map((profile) => (
-                <option key={profile.id} value={profile.id}>
-                  {profile.name}
-                </option>
-              ))}
-            </select>
+          <label className="field">
+            <span className="field-label">profile</span>
+            <span className="input-wrap">
+              <span className="prompt" aria-hidden="true">
+                use&gt;
+              </span>
+              <select
+                className="select"
+                value={selectedProfileId}
+                onChange={(event) => setSelectedProfileId(event.target.value)}
+              >
+                <option value="">-- select --</option>
+                {profiles.map((profile) => (
+                  <option key={profile.id} value={profile.id}>
+                    {profile.name}
+                  </option>
+                ))}
+              </select>
+            </span>
           </label>
         </div>
 
-        {error ? <p className="error-text">{error}</p> : null}
+        {error ? <div className="banner banner-error">{error}</div> : null}
 
         <div className="form-actions">
-          <button type="button" disabled={applying} onClick={handleApply}>
-            {applying ? "Applying..." : "Apply to repository"}
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={applying}
+            onClick={handleApply}
+          >
+            {applying ? "...exec" : "[ apply to repo ]"}
           </button>
         </div>
-      </article>
+      </TerminalWindow>
 
       {repoIdentity ? (
-        <article className="card">
-          <h3>Repository identity updated</h3>
-          <p>{repoIdentity.userName ?? "Not set"}</p>
-          <p className="muted">{repoIdentity.userEmail ?? "Not set"}</p>
-        </article>
+        <TerminalWindow title="config written" flag="--ok">
+          <p className="id-line">
+            <span className="key">user.name </span>
+            {repoIdentity.userName ?? "not set"}
+          </p>
+          <p className="id-line">
+            <span className="key">user.email</span>
+            {repoIdentity.userEmail ?? "not set"}
+          </p>
+          <p className="success-text">[OK] local identity applied</p>
+        </TerminalWindow>
       ) : null}
     </section>
   );

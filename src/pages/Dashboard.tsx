@@ -1,3 +1,6 @@
+import { ProgressBar } from "../components/ProgressBar";
+import { TerminalWindow } from "../components/TerminalWindow";
+import { Typewriter } from "../components/Typewriter";
 import type { ActiveIdentityState, GitProfile } from "../types";
 
 interface DashboardProps {
@@ -8,6 +11,14 @@ interface DashboardProps {
   error: string;
   onRefresh: () => void;
   onSwitch: (profileId: string) => void;
+}
+
+function statusChip(set: boolean) {
+  return set ? (
+    <span className="status status-ok">[OK]</span>
+  ) : (
+    <span className="status status-err">[ERR]</span>
+  );
 }
 
 export function Dashboard({
@@ -21,46 +32,83 @@ export function Dashboard({
 }: DashboardProps) {
   const activeProfile = identity?.activeProfile;
   const global = identity?.global;
+  const hasName = Boolean(global?.userName);
+  const hasEmail = Boolean(global?.userEmail);
+  const matched = Boolean(activeProfile);
 
   return (
     <section className="page">
-      <header className="page-header">
+      <header className="page-head">
         <div>
-          <h1>Dashboard</h1>
-          <p>See your active Git identity and switch with one click.</p>
+          <h1 className="page-title glitch">~/dashboard</h1>
+          <p className="page-sub">git config --global --get user.*</p>
         </div>
-        <button type="button" className="secondary" onClick={onRefresh}>
-          Refresh
-        </button>
+        <div className="page-actions">
+          <button type="button" className="btn" onClick={onRefresh}>
+            [ refresh ]
+          </button>
+        </div>
       </header>
 
-      {error ? <p className="error-banner">{error}</p> : null}
+      {error ? <div className="banner banner-error">{error}</div> : null}
 
-      <div className="dashboard-grid">
-        <article className="card highlight-card">
-          <p className="eyebrow">Currently using</p>
+      <div className="dash-grid">
+        <TerminalWindow
+          title="active identity"
+          flag={matched ? "--matched" : "--unmatched"}
+          tone={matched ? "primary" : "amber"}
+        >
           {loading ? (
-            <p>Loading identity...</p>
+            <p className="id-line">
+              reading config
+              <span className="term-cursor" aria-hidden="true" />
+            </p>
           ) : (
-            <>
-              <h2>{activeProfile?.name ?? "Unmatched profile"}</h2>
-              <p className="identity-line">{global?.userName ?? "Not set"}</p>
-              <p className="identity-line muted">
-                {global?.userEmail ?? "Not set"}
+            <div className="id-block">
+              <p className="id-eyebrow">currently using</p>
+              <h2 className="id-name">
+                <Typewriter
+                  text={activeProfile?.name ?? "unmatched profile"}
+                />
+              </h2>
+              <p className="id-line">
+                <span className="key">user.name </span>
+                {global?.userName ?? "not set"}
               </p>
-              {!activeProfile ? (
+              <p className="id-line">
+                <span className="key">user.email</span>
+                {global?.userEmail ?? "not set"}
+              </p>
+
+              <hr className="divider" />
+
+              <div className="checks">
+                <div className="check-row">
+                  <span className="label">user.name</span>
+                  {statusChip(hasName)}
+                </div>
+                <div className="check-row">
+                  <span className="label">user.email</span>
+                  {statusChip(hasEmail)}
+                </div>
+                <div className="check-row">
+                  <span className="label">profile match</span>
+                  <ProgressBar value={matched ? 100 : 0} />
+                </div>
+              </div>
+
+              {!matched ? (
                 <p className="hint">
-                  Global Git config does not match any saved profile.
+                  // global config matches no saved profile
                 </p>
               ) : null}
-            </>
+            </div>
           )}
-        </article>
+        </TerminalWindow>
 
-        <article className="card">
-          <h3>Quick switch</h3>
+        <TerminalWindow title="quick switch" flag="--global">
           {profiles.length === 0 ? (
-            <p className="hint">Add profiles to enable one-click switching.</p>
+            <p className="hint">// no profiles. add one in ~/profiles</p>
           ) : (
             <div className="switch-list">
               {profiles.map((profile) => {
@@ -76,19 +124,23 @@ export function Dashboard({
                     onClick={() => onSwitch(profile.id)}
                   >
                     <span className="switch-name">
-                      {isActive ? "✓ " : ""}
+                      <span aria-hidden="true">{isActive ? ">" : "$"}</span>
                       {profile.name}
+                      <span className="switch-tag">
+                        {isSwitching
+                          ? "...exec"
+                          : isActive
+                            ? "[active]"
+                            : ""}
+                      </span>
                     </span>
                     <span className="switch-meta">{profile.userEmail}</span>
-                    {isSwitching ? (
-                      <span className="switch-status">Switching...</span>
-                    ) : null}
                   </button>
                 );
               })}
             </div>
           )}
-        </article>
+        </TerminalWindow>
       </div>
     </section>
   );
