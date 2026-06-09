@@ -26,18 +26,18 @@
 
 ### v0.2
 
-- [ ] System tray icon and menu
-- [ ] Quick switch from tray
-- [ ] Repo auto-detection from current directory
-- [ ] Startup minimized option
-- [ ] Better error surfaces and retry flows
+- [x] System tray icon and menu
+- [x] Quick switch from tray
+- [x] Repo auto-detection from current directory
+- [x] Startup minimized option
+- [x] Better error surfaces and retry flows
 
 ### v0.3
 
-- [ ] SSH config generation/switching
-- [ ] GitHub/GitLab host presets
-- [ ] Import from existing global Git config
-- [ ] Profile colors/icons
+- [x] SSH config generation/switching
+- [x] GitHub/GitLab host presets
+- [x] Import from existing global Git config
+- [x] Profile colors/icons
 
 ---
 

@@ -3,9 +3,13 @@ import type {
   ActiveIdentityState,
   AppData,
   AppSettings,
+  AuthStatus,
   DetectedRepo,
   GitIdentity,
   GitProfile,
+  GlobalConfigImport,
+  HostPreset,
+  ProfilePresets,
 } from "../types";
 
 export function getActiveIdentity(): Promise<ActiveIdentityState> {
@@ -26,6 +30,32 @@ export function detectSshKeyPath(
   return invoke<string | null>("detect_ssh_key_path", { profileName });
 }
 
+export function getAuthStatus(): Promise<AuthStatus> {
+  return invoke<AuthStatus>("get_auth_status");
+}
+
+export function getHostPresets(): Promise<HostPreset[]> {
+  return invoke<HostPreset[]>("get_host_presets");
+}
+
+export function getProfilePresets(): Promise<ProfilePresets> {
+  return invoke<ProfilePresets>("get_profile_presets");
+}
+
+export function importGlobalConfig(): Promise<GlobalConfigImport> {
+  return invoke<GlobalConfigImport>("import_global_config");
+}
+
+export function importGlobalAsProfile(input: {
+  name: string;
+  host?: string;
+  sshKey?: string;
+  color?: string;
+  icon?: string;
+}): Promise<GitProfile> {
+  return invoke<GitProfile>("import_global_as_profile", input);
+}
+
 export function listProfiles(): Promise<AppData> {
   return invoke<AppData>("list_profiles");
 }
@@ -37,6 +67,8 @@ export function createProfile(input: {
   sshKey?: string;
   gpgKey?: string;
   host?: string;
+  color?: string;
+  icon?: string;
 }): Promise<GitProfile> {
   return invoke<GitProfile>("create_profile", input);
 }
@@ -49,6 +81,8 @@ export function updateProfile(input: {
   sshKey?: string;
   gpgKey?: string;
   host?: string;
+  color?: string;
+  icon?: string;
 }): Promise<GitProfile> {
   return invoke<GitProfile>("update_profile", input);
 }

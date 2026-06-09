@@ -97,6 +97,14 @@ pub fn apply_profile_auth(
     apply_git_url_rewrite(git_executable, &host)
 }
 
+pub fn managed_config_applied() -> bool {
+    ssh_config_path()
+        .ok()
+        .and_then(|path| fs::read_to_string(path).ok())
+        .map(|content| content.contains(BEGIN_MARKER))
+        .unwrap_or(false)
+}
+
 pub fn clear_profile_auth(git_executable: &str) -> Result<(), String> {
     remove_managed_ssh_block()?;
     remove_git_url_rewrite(git_executable, "github.com")?;

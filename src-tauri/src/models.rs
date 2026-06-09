@@ -13,6 +13,10 @@ pub struct GitProfile {
     pub gpg_key: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub host: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -56,6 +60,15 @@ pub struct ActiveIdentityState {
     pub global: GitIdentity,
     pub active_profile: Option<GitProfile>,
     pub matched_by_config: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthStatus {
+    pub ssh_switching_enabled: bool,
+    pub ssh_config_applied: bool,
+    pub active_ssh_key: Option<String>,
+    pub active_host: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

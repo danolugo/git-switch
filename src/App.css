@@ -703,6 +703,8 @@ a {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   display: flex;
+  align-items: center;
+  gap: var(--sp-2);
   gap: 0.8ch;
   align-items: baseline;
 }
@@ -728,6 +730,74 @@ a {
 
 .profile-card .window-body {
   gap: var(--sp-2);
+}
+
+.profile-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+
+.profile-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.4rem;
+  height: 2.4rem;
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--primary);
+  text-transform: uppercase;
+  font-size: var(--fs-sm);
+  text-shadow: none;
+  box-shadow: var(--glow);
+}
+
+.profile-badge.sm {
+  min-width: 1.8rem;
+  height: 1.8rem;
+  font-size: var(--fs-xs);
+}
+
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.color-swatch {
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  padding: 0;
+}
+
+.color-swatch.active {
+  outline: 2px solid var(--secondary);
+  outline-offset: 2px;
+}
+
+.icon-pill {
+  min-width: 2rem;
+  padding: var(--sp-1) var(--sp-2);
+  border: var(--line);
+  background: transparent;
+  color: var(--primary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.icon-pill.active {
+  border-color: var(--secondary);
+  color: var(--secondary);
+  box-shadow: var(--glow-amber);
+}
+
+.select-input {
+  margin-bottom: var(--sp-2);
 }
 
 .profile-head {

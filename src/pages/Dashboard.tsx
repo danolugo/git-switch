@@ -2,10 +2,11 @@ import { ErrorBanner } from "../components/ErrorBanner";
 import { ProgressBar } from "../components/ProgressBar";
 import { TerminalWindow } from "../components/TerminalWindow";
 import { Typewriter } from "../components/Typewriter";
-import type { ActiveIdentityState, GitProfile } from "../types";
+import type { ActiveIdentityState, AuthStatus, GitProfile } from "../types";
 
 interface DashboardProps {
   identity: ActiveIdentityState | null;
+  authStatus: AuthStatus | null;
   profiles: GitProfile[];
   loading: boolean;
   switchingId: string | null;
@@ -22,8 +23,20 @@ function statusChip(set: boolean) {
   );
 }
 
+function profileBadge(profile: GitProfile) {
+  const color = profile.color ?? "#33ff00";
+  const icon = profile.icon ?? profile.name.slice(0, 2).toLowerCase();
+
+  return (
+    <span className="profile-badge sm" style={{ borderColor: color, color }}>
+      {icon}
+    </span>
+  );
+}
+
 export function Dashboard({
   identity,
+  authStatus,
   profiles,
   loading,
   switchingId,
@@ -36,6 +49,11 @@ export function Dashboard({
   const hasName = Boolean(global?.userName);
   const hasEmail = Boolean(global?.userEmail);
   const matched = Boolean(activeProfile);
+  const sshReady = Boolean(
+    authStatus?.sshSwitchingEnabled &&
+      authStatus.sshConfigApplied &&
+      authStatus.activeSshKey,
+  );
 
   return (
     <section className="page">
@@ -68,12 +86,17 @@ export function Dashboard({
             </p>
           ) : (
             <div className="id-block">
-              <p className="id-eyebrow">currently using</p>
-              <h2 className="id-name">
-                <Typewriter
-                  text={activeProfile?.name ?? "unmatched profile"}
-                />
-              </h2>
+              <div className="profile-card-head">
+                {activeProfile ? profileBadge(activeProfile) : null}
+                <div>
+                  <p className="id-eyebrow">currently using</p>
+                  <h2 className="id-name">
+                    <Typewriter
+                      text={activeProfile?.name ?? "unmatched profile"}
+                    />
+                  </h2>
+                </div>
+              </div>
               <p className="id-line">
                 <span className="key">user.name </span>
                 {global?.userName ?? "not set"}
@@ -98,18 +121,26 @@ export function Dashboard({
                   <span className="label">profile match</span>
                   <ProgressBar value={matched ? 100 : 0} />
                 </div>
+                <div className="check-row">
+                  <span className="label">ssh auth</span>
+                  {statusChip(sshReady)}
+                </div>
               </div>
+
+              {authStatus?.sshSwitchingEnabled ? (
+                <p className="hint mono">
+                  // ssh: {authStatus.activeSshKey ?? "none"} @{" "}
+                  {authStatus.activeHost ?? "github.com"}
+                </p>
+              ) : (
+                <p className="hint">// ssh switching disabled in ~/settings</p>
+              )}
 
               {!matched ? (
                 <p className="hint">
                   // global config matches no saved profile
                 </p>
               ) : null}
-
-              <p className="hint">
-                // auth: ssh key + https→ssh rewrite applied on switch (not just
-                name/email)
-              </p>
             </div>
           )}
         </TerminalWindow>
@@ -132,6 +163,7 @@ export function Dashboard({
                     onClick={() => onSwitch(profile.id)}
                   >
                     <span className="switch-name">
+                      {profileBadge(profile)}
                       <span aria-hidden="true">{isActive ? ">" : "$"}</span>
                       {profile.name}
                       <span className="switch-tag">

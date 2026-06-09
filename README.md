@@ -1,10 +1,28 @@
 # git-switch
 
-A small Windows desktop app for switching between multiple Git identities. Built with **Tauri 2** and **React**.
+A small Windows desktop app for switching between multiple Git identities — name, email, and SSH authentication. Built with **Tauri 2** and **React**.
 
-## Features (v0.1)
+## Features
 
-- Save Git profiles (name, username, email, optional SSH/GPG/host)
+### v0.3 (current)
+
+- **SSH auth switching** — writes a managed block in `~/.ssh/config` and rewrites `https://github.com/` to SSH per profile
+- **Auto-detect SSH keys** — looks for `~/.ssh/id_ed25519_<profile-name>` on startup and in the profile form
+- **Host presets** — GitHub, GitLab, Bitbucket, Azure DevOps (plus custom host)
+- **Import from global Git config** — create a profile from your current `git config --global user.*`
+- **Profile colors and icons** — visual badges on dashboard and profile cards
+- **Auth status on dashboard** — shows whether SSH config is applied for the active profile
+
+### v0.2
+
+- System tray with quick profile switching
+- Close window hides to tray; optional start minimized
+- Repository auto-detection from folder picker
+- Error banners with retry
+
+### v0.1
+
+- Save Git profiles (name, username, email)
 - Show current global Git identity
 - Detect which saved profile matches the active config
 - One-click global identity switching
@@ -15,10 +33,28 @@ A small Windows desktop app for switching between multiple Git identities. Built
 
 | Screen | Purpose |
 |--------|---------|
-| Dashboard | Current identity + quick switch |
-| Profiles | Add, edit, delete accounts |
+| Dashboard | Current identity, SSH auth status, quick switch |
+| Profiles | Add, edit, delete, import accounts |
 | Repository | Apply identity to one repo |
-| Settings | Git executable path and future options |
+| Settings | Git executable path, SSH switching, start minimized |
+
+## SSH setup (recommended)
+
+For each profile, save a private key as:
+
+```
+%USERPROFILE%\.ssh\id_ed25519_<profile-name>
+```
+
+Example for a profile named `goat`:
+
+```powershell
+ssh-keygen -t ed25519 -f "$env:USERPROFILE\.ssh\id_ed25519_goat" -C "you@company.com"
+```
+
+Add the `.pub` file to the matching GitHub/GitLab account, then switch to that profile in git-switch.
+
+Enable **SSH authentication switching** in Settings (on by default when keys are detected).
 
 ## Prerequisites
 
@@ -48,6 +84,10 @@ Profiles are stored at:
 
 `%APPDATA%\com.gitswitch.app\profiles.json`
 
+SSH config is managed in:
+
+`%USERPROFILE%\.ssh\config` (between `# BEGIN git-switch managed` markers)
+
 ## Verify switching
 
 After switching in the app:
@@ -55,11 +95,11 @@ After switching in the app:
 ```powershell
 git config --global user.name
 git config --global user.email
+ssh -T git@github.com
 ```
 
 ## Roadmap
 
-- **v0.2:** System tray, repo auto-detection, better errors
-- **v0.3:** SSH key switching, host presets, import existing config
+- **v0.4:** GPG signing key switching, per-repo profile memory, Windows installer polish
 
 See [docs/plans/2026-06-09-git-switch-implementation.md](docs/plans/2026-06-09-git-switch-implementation.md) for the full plan.

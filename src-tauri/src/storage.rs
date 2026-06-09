@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use tauri::{Manager, Runtime};
 
 use crate::models::{AppData, AppSettings, GitProfile};
+use crate::presets;
 use crate::ssh;
 
 pub fn data_file_path<R: Runtime>(app_handle: &tauri::AppHandle<R>) -> Result<PathBuf, String> {
@@ -45,7 +46,7 @@ pub fn load_app_data<R: Runtime>(app_handle: &tauri::AppHandle<R>) -> Result<App
 fn migrate_app_data(data: &mut AppData) -> bool {
     let mut changed = false;
 
-    for profile in &mut data.profiles {
+    for (index, profile) in data.profiles.iter_mut().enumerate() {
         let normalized_host = profile
             .host
             .as_deref()
@@ -68,6 +69,16 @@ fn migrate_app_data(data: &mut AppData) -> bool {
                 profile.ssh_key = Some(detected);
                 changed = true;
             }
+        }
+
+        if profile.color.as_ref().map(|value| value.trim().is_empty()).unwrap_or(true) {
+            profile.color = Some(presets::default_color_for_index(index));
+            changed = true;
+        }
+
+        if profile.icon.as_ref().map(|value| value.trim().is_empty()).unwrap_or(true) {
+            profile.icon = Some(presets::default_icon_for_name(&profile.name));
+            changed = true;
         }
     }
 

@@ -6,6 +6,36 @@ export interface GitProfile {
   sshKey?: string;
   gpgKey?: string;
   host?: string;
+  color?: string;
+  icon?: string;
+}
+
+export interface HostPreset {
+  id: string;
+  label: string;
+  host: string;
+}
+
+export interface ProfilePresets {
+  colors: string[];
+  icons: string[];
+}
+
+export interface GlobalConfigImport {
+  userName?: string;
+  userEmail?: string;
+  suggestedName: string;
+  suggestedHost: string;
+  suggestedSshKey?: string;
+  suggestedColor: string;
+  suggestedIcon: string;
+}
+
+export interface AuthStatus {
+  sshSwitchingEnabled: boolean;
+  sshConfigApplied: boolean;
+  activeSshKey?: string;
+  activeHost?: string;
 }
 
 export interface AppSettings {
@@ -46,4 +76,6 @@ export interface ProfileFormValues {
   sshKey: string;
   gpgKey: string;
   host: string;
+  color: string;
+  icon: string;
 }

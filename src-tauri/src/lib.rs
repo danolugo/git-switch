@@ -1,5 +1,7 @@
 mod git;
+mod import;
 mod models;
+mod presets;
 mod ssh;
 mod storage;
 mod switch;
@@ -7,7 +9,9 @@ mod tray;
 
 use std::path::PathBuf;
 
-use models::{ActiveIdentityState, AppData, DetectedRepo, GitIdentity, GitProfile};
+use import::{read_global_import, GlobalConfigImport};
+use models::{ActiveIdentityState, AppData, AuthStatus, DetectedRepo, GitIdentity, GitProfile};
+use presets::{host_presets, profile_presets, HostPreset, ProfilePresets};
 use storage::{find_profile, load_app_data, profile_matches_identity, save_app_data};
 use tauri::{Manager, Runtime, WindowEvent};
 use uuid::Uuid;
@@ -79,6 +83,65 @@ fn list_profiles(app: tauri::AppHandle) -> Result<AppData, String> {
 }
 
 #[tauri::command]
+fn get_host_presets() -> Vec<HostPreset> {
+    host_presets()
+}
+
+#[tauri::command]
+fn get_profile_presets() -> ProfilePresets {
+    profile_presets()
+}
+
+#[tauri::command]
+fn import_global_config(app: tauri::AppHandle) -> Result<GlobalConfigImport, String> {
+    read_global_import(&app)
+}
+
+#[tauri::command]
+fn import_global_as_profile(
+    app: tauri::AppHandle,
+    name: String,
+    host: Option<String>,
+    ssh_key: Option<String>,
+    color: Option<String>,
+    icon: Option<String>,
+) -> Result<GitProfile, String> {
+    import::import_global_as_profile(&app, name, host, ssh_key, color, icon)
+}
+
+#[tauri::command]
+fn get_auth_status(app: tauri::AppHandle) -> Result<AuthStatus, String> {
+    let data = load_app_data(&app)?;
+
+    let active_profile = data
+        .active_profile_id
+        .as_deref()
+        .and_then(|id| find_profile(&data, id))
+        .cloned();
+
+    let (active_ssh_key, active_host) = active_profile
+        .as_ref()
+        .map(|profile| {
+            (
+                ssh::resolve_ssh_key_path(profile),
+                profile
+                    .host
+                    .as_deref()
+                    .map(ssh::normalize_host)
+                    .or(Some("github.com".to_string())),
+            )
+        })
+        .unwrap_or((None, None));
+
+    Ok(AuthStatus {
+        ssh_switching_enabled: data.settings.ssh_switching_enabled,
+        ssh_config_applied: ssh::managed_config_applied(),
+        active_ssh_key,
+        active_host,
+    })
+}
+
+#[tauri::command]
 fn detect_ssh_key_path(profile_name: String) -> Result<Option<String>, String> {
     let path = ssh::default_key_path_for_profile(&profile_name);
     if path.exists() {
@@ -97,8 +160,11 @@ fn create_profile(
     ssh_key: Option<String>,
     gpg_key: Option<String>,
     host: Option<String>,
+    color: Option<String>,
+    icon: Option<String>,
 ) -> Result<GitProfile, String> {
     let mut data = load_app_data(&app)?;
+    let profile_index = data.profiles.len();
 
     let profile = GitProfile {
         id: Uuid::new_v4().to_string(),
@@ -107,7 +173,9 @@ fn create_profile(
         user_email: user_email.trim().to_string(),
         ssh_key,
         gpg_key,
-        host,
+        host: host.map(|value| ssh::normalize_host(&value)),
+        color: color.or(Some(presets::default_color_for_index(profile_index))),
+        icon: icon.or(Some(presets::default_icon_for_name(name.trim()))),
     };
 
     if profile.name.is_empty() || profile.user_name.is_empty() || profile.user_email.is_empty() {
@@ -130,6 +198,8 @@ fn update_profile(
     ssh_key: Option<String>,
     gpg_key: Option<String>,
     host: Option<String>,
+    color: Option<String>,
+    icon: Option<String>,
 ) -> Result<GitProfile, String> {
     let mut data = load_app_data(&app)?;
 
@@ -144,7 +214,9 @@ fn update_profile(
     profile.user_email = user_email.trim().to_string();
     profile.ssh_key = ssh_key;
     profile.gpg_key = gpg_key;
-    profile.host = host;
+    profile.host = host.map(|value| ssh::normalize_host(&value));
+    profile.color = color;
+    profile.icon = icon;
 
     if profile.name.is_empty() || profile.user_name.is_empty() || profile.user_email.is_empty() {
         return Err("Profile name, username, and email are required.".to_string());
@@ -283,6 +355,11 @@ pub fn run() {
             get_repo_identity,
             detect_git_repo,
             detect_ssh_key_path,
+            get_auth_status,
+            get_host_presets,
+            get_profile_presets,
+            import_global_config,
+            import_global_as_profile,
             list_profiles,
             create_profile,
             update_profile,

@@ -4,6 +4,7 @@ import {
   createProfile,
   deleteProfile,
   getActiveIdentity,
+  getAuthStatus,
   listProfiles,
   switchGlobalProfile,
   switchRepoProfile,
@@ -18,6 +19,7 @@ import { Settings } from "./pages/Settings";
 import type {
   ActiveIdentityState,
   AppSettings,
+  AuthStatus,
   GitProfile,
   ProfileFormValues,
   ViewName,
@@ -48,6 +50,7 @@ function App() {
     startMinimized: false,
   });
   const [identity, setIdentity] = useState<ActiveIdentityState | null>(null);
+  const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -57,14 +60,16 @@ function App() {
     setError("");
 
     try {
-      const [appData, activeIdentity] = await Promise.all([
+      const [appData, activeIdentity, auth] = await Promise.all([
         listProfiles(),
         getActiveIdentity(),
+        getAuthStatus(),
       ]);
 
       setProfiles(appData.profiles);
       setSettings(appData.settings);
       setIdentity(activeIdentity);
+      setAuthStatus(auth);
     } catch (refreshError) {
       setError(invokeErrorMessage(refreshError, "Could not load Git identity."));
     } finally {
@@ -122,6 +127,8 @@ function App() {
       sshKey: optionalField(values.sshKey),
       gpgKey: optionalField(values.gpgKey),
       host: optionalField(values.host),
+      color: optionalField(values.color),
+      icon: optionalField(values.icon),
     });
     await refresh();
   }
@@ -135,6 +142,8 @@ function App() {
       sshKey: optionalField(values.sshKey),
       gpgKey: optionalField(values.gpgKey),
       host: optionalField(values.host),
+      color: optionalField(values.color),
+      icon: optionalField(values.icon),
     });
     await refresh();
   }
@@ -155,6 +164,7 @@ function App() {
       {view === "dashboard" ? (
         <Dashboard
           identity={identity}
+          authStatus={authStatus}
           profiles={profiles}
           loading={loading}
           switchingId={switchingId}
@@ -170,6 +180,7 @@ function App() {
           onCreate={handleCreate}
           onUpdate={handleUpdate}
           onDelete={handleDelete}
+          onImported={refresh}
         />
       ) : null}
 
