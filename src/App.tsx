@@ -1,0 +1,165 @@
+import { useCallback, useEffect, useState } from "react";
+import {
+  createProfile,
+  deleteProfile,
+  getActiveIdentity,
+  listProfiles,
+  switchGlobalProfile,
+  switchRepoProfile,
+  updateProfile,
+  updateSettings,
+} from "./api/gitSwitch";
+import { Layout } from "./components/Layout";
+import { Dashboard } from "./pages/Dashboard";
+import { Profiles } from "./pages/Profiles";
+import { Repository } from "./pages/Repository";
+import { Settings } from "./pages/Settings";
+import type {
+  ActiveIdentityState,
+  AppSettings,
+  GitProfile,
+  ProfileFormValues,
+  ViewName,
+} from "./types";
+import "./App.css";
+
+function optionalField(value: string): string | undefined {
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function App() {
+  const [view, setView] = useState<ViewName>("dashboard");
+  const [profiles, setProfiles] = useState<GitProfile[]>([]);
+  const [settings, setSettings] = useState<AppSettings>({
+    gitExecutable: "git",
+    sshSwitchingEnabled: false,
+    startMinimized: false,
+  });
+  const [identity, setIdentity] = useState<ActiveIdentityState | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const [appData, activeIdentity] = await Promise.all([
+        listProfiles(),
+        getActiveIdentity(),
+      ]);
+
+      setProfiles(appData.profiles);
+      setSettings(appData.settings);
+      setIdentity(activeIdentity);
+    } catch (refreshError) {
+      setError(
+        refreshError instanceof Error
+          ? refreshError.message
+          : "Could not load Git identity.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  async function handleSwitch(profileId: string) {
+    setSwitchingId(profileId);
+    setError("");
+
+    try {
+      await switchGlobalProfile(profileId);
+      await refresh();
+    } catch (switchError) {
+      setError(
+        switchError instanceof Error
+          ? switchError.message
+          : "Could not switch profile.",
+      );
+    } finally {
+      setSwitchingId(null);
+    }
+  }
+
+  async function handleCreate(values: ProfileFormValues) {
+    await createProfile({
+      name: values.name,
+      userName: values.userName,
+      userEmail: values.userEmail,
+      sshKey: optionalField(values.sshKey),
+      gpgKey: optionalField(values.gpgKey),
+      host: optionalField(values.host),
+    });
+    await refresh();
+  }
+
+  async function handleUpdate(profileId: string, values: ProfileFormValues) {
+    await updateProfile({
+      profileId,
+      name: values.name,
+      userName: values.userName,
+      userEmail: values.userEmail,
+      sshKey: optionalField(values.sshKey),
+      gpgKey: optionalField(values.gpgKey),
+      host: optionalField(values.host),
+    });
+    await refresh();
+  }
+
+  async function handleDelete(profileId: string) {
+    await deleteProfile(profileId);
+    await refresh();
+  }
+
+  async function handleSaveSettings(nextSettings: AppSettings) {
+    const saved = await updateSettings(nextSettings);
+    setSettings(saved);
+    await refresh();
+  }
+
+  return (
+    <Layout currentView={view} onNavigate={setView}>
+      {view === "dashboard" ? (
+        <Dashboard
+          identity={identity}
+          profiles={profiles}
+          loading={loading}
+          switchingId={switchingId}
+          error={error}
+          onRefresh={() => void refresh()}
+          onSwitch={(profileId) => void handleSwitch(profileId)}
+        />
+      ) : null}
+
+      {view === "profiles" ? (
+        <Profiles
+          profiles={profiles}
+          onCreate={handleCreate}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
+        />
+      ) : null}
+
+      {view === "repository" ? (
+        <Repository
+          profiles={profiles}
+          onApply={(repoPath, profileId) =>
+            switchRepoProfile(repoPath, profileId)
+          }
+        />
+      ) : null}
+
+      {view === "settings" ? (
+        <Settings settings={settings} onSave={handleSaveSettings} />
+      ) : null}
+    </Layout>
+  );
+}
+
+export default App;
