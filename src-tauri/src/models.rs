@@ -27,7 +27,7 @@ impl AppSettings {
     pub fn defaults() -> Self {
         Self {
             git_executable: "git".to_string(),
-            ssh_switching_enabled: false,
+            ssh_switching_enabled: true,
             start_minimized: false,
         }
     }
@@ -56,4 +56,12 @@ pub struct ActiveIdentityState {
     pub global: GitIdentity,
     pub active_profile: Option<GitProfile>,
     pub matched_by_config: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DetectedRepo {
+    pub repo_path: Option<String>,
+    pub identity: Option<GitIdentity>,
+    pub searched_from: String,
 }

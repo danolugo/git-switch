@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 import {
   createProfile,
   deleteProfile,
@@ -21,6 +22,7 @@ import type {
   ProfileFormValues,
   ViewName,
 } from "./types";
+import { invokeErrorMessage } from "./utils/errors";
 import "./App.css";
 
 function optionalField(value: string): string | undefined {
@@ -28,12 +30,21 @@ function optionalField(value: string): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
+function isViewName(value: string): value is ViewName {
+  return (
+    value === "dashboard" ||
+    value === "profiles" ||
+    value === "repository" ||
+    value === "settings"
+  );
+}
+
 function App() {
   const [view, setView] = useState<ViewName>("dashboard");
   const [profiles, setProfiles] = useState<GitProfile[]>([]);
   const [settings, setSettings] = useState<AppSettings>({
     gitExecutable: "git",
-    sshSwitchingEnabled: false,
+    sshSwitchingEnabled: true,
     startMinimized: false,
   });
   const [identity, setIdentity] = useState<ActiveIdentityState | null>(null);
@@ -55,11 +66,7 @@ function App() {
       setSettings(appData.settings);
       setIdentity(activeIdentity);
     } catch (refreshError) {
-      setError(
-        refreshError instanceof Error
-          ? refreshError.message
-          : "Could not load Git identity.",
-      );
+      setError(invokeErrorMessage(refreshError, "Could not load Git identity."));
     } finally {
       setLoading(false);
     }
@@ -67,6 +74,30 @@ function App() {
 
   useEffect(() => {
     void refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    const unlisteners: Array<Promise<() => void>> = [];
+
+    unlisteners.push(
+      listen<string>("navigate", (event) => {
+        if (isViewName(event.payload)) {
+          setView(event.payload);
+        }
+      }),
+    );
+
+    unlisteners.push(
+      listen("identity-changed", () => {
+        void refresh();
+      }),
+    );
+
+    return () => {
+      void Promise.all(unlisteners).then((stops) => {
+        stops.forEach((stop) => stop());
+      });
+    };
   }, [refresh]);
 
   async function handleSwitch(profileId: string) {
@@ -77,11 +108,7 @@ function App() {
       await switchGlobalProfile(profileId);
       await refresh();
     } catch (switchError) {
-      setError(
-        switchError instanceof Error
-          ? switchError.message
-          : "Could not switch profile.",
-      );
+      setError(invokeErrorMessage(switchError, "Could not switch profile."));
     } finally {
       setSwitchingId(null);
     }

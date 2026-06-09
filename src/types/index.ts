@@ -31,6 +31,12 @@ export interface ActiveIdentityState {
   matchedByConfig: boolean;
 }
 
+export interface DetectedRepo {
+  repoPath?: string;
+  identity?: GitIdentity;
+  searchedFrom: string;
+}
+
 export type ViewName = "dashboard" | "profiles" | "repository" | "settings";
 
 export interface ProfileFormValues {

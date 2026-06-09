@@ -1,3 +1,4 @@
+import { ErrorBanner } from "../components/ErrorBanner";
 import { ProgressBar } from "../components/ProgressBar";
 import { TerminalWindow } from "../components/TerminalWindow";
 import { Typewriter } from "../components/Typewriter";
@@ -50,7 +51,9 @@ export function Dashboard({
         </div>
       </header>
 
-      {error ? <div className="banner banner-error">{error}</div> : null}
+      {error ? (
+        <ErrorBanner message={error} onRetry={onRefresh} />
+      ) : null}
 
       <div className="dash-grid">
         <TerminalWindow
@@ -102,6 +105,11 @@ export function Dashboard({
                   // global config matches no saved profile
                 </p>
               ) : null}
+
+              <p className="hint">
+                // auth: ssh key + https→ssh rewrite applied on switch (not just
+                name/email)
+              </p>
             </div>
           )}
         </TerminalWindow>

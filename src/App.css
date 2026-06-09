@@ -548,7 +548,10 @@ a {
   padding: 0.6rem 0.9rem;
   font-size: var(--fs-sm);
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 0.8ch;
+  flex-wrap: wrap;
 }
 
 .banner::before {

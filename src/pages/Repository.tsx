@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { open } from "@tauri-apps/plugin-dialog";
+import { detectGitRepo } from "../api/gitSwitch";
+import { ErrorBanner } from "../components/ErrorBanner";
 import { TerminalWindow } from "../components/TerminalWindow";
 import type { GitIdentity, GitProfile } from "../types";
 
@@ -11,8 +14,70 @@ export function Repository({ profiles, onApply }: RepositoryProps) {
   const [repoPath, setRepoPath] = useState("");
   const [selectedProfileId, setSelectedProfileId] = useState("");
   const [repoIdentity, setRepoIdentity] = useState<GitIdentity | null>(null);
+  const [detectedFrom, setDetectedFrom] = useState("");
   const [error, setError] = useState("");
+  const [detecting, setDetecting] = useState(true);
   const [applying, setApplying] = useState(false);
+
+  const runDetect = useCallback(async () => {
+    setDetecting(true);
+    setError("");
+
+    try {
+      const detected = await detectGitRepo();
+      setDetectedFrom(detected.searchedFrom);
+
+      if (detected.repoPath) {
+        setRepoPath(detected.repoPath);
+        if (detected.identity) {
+          setRepoIdentity(detected.identity);
+        }
+      }
+    } catch (detectError) {
+      setError(
+        detectError instanceof Error
+          ? detectError.message
+          : "Could not detect repository.",
+      );
+    } finally {
+      setDetecting(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void runDetect();
+  }, [runDetect]);
+
+  async function handleBrowse() {
+    setError("");
+
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title: "Select repository folder",
+      });
+
+      if (typeof selected === "string") {
+        setRepoPath(selected);
+        const detected = await detectGitRepo(selected);
+        setDetectedFrom(detected.searchedFrom);
+        if (detected.repoPath) {
+          setRepoPath(detected.repoPath);
+          setRepoIdentity(detected.identity ?? null);
+        } else {
+          setRepoIdentity(null);
+          setError("// selected folder is not inside a git repository");
+        }
+      }
+    } catch (browseError) {
+      setError(
+        browseError instanceof Error
+          ? browseError.message
+          : "Could not open folder picker.",
+      );
+    }
+  }
 
   async function handleApply() {
     if (!repoPath.trim()) {
@@ -50,9 +115,32 @@ export function Repository({ profiles, onApply }: RepositoryProps) {
           <h1 className="page-title glitch">~/repo</h1>
           <p className="page-sub">git config --local user.* &lt;repo&gt;</p>
         </div>
+        <div className="page-actions">
+          <button
+            type="button"
+            className="btn"
+            disabled={detecting}
+            onClick={() => void runDetect()}
+          >
+            {detecting ? "...scan" : "[ detect ]"}
+          </button>
+        </div>
       </header>
 
+      {error ? (
+        <ErrorBanner message={error} onRetry={() => void runDetect()} />
+      ) : null}
+
       <TerminalWindow title="repository identity" flag="--local">
+        {detecting ? (
+          <p className="hint">
+            // scanning cwd for .git
+            <span className="term-cursor" aria-hidden="true" />
+          </p>
+        ) : detectedFrom ? (
+          <p className="hint">// scanned from: {detectedFrom}</p>
+        ) : null}
+
         <div className="form-grid">
           <label className="field">
             <span className="field-label">repository folder</span>
@@ -91,14 +179,15 @@ export function Repository({ profiles, onApply }: RepositoryProps) {
           </label>
         </div>
 
-        {error ? <div className="banner banner-error">{error}</div> : null}
-
         <div className="form-actions">
+          <button type="button" className="btn" onClick={() => void handleBrowse()}>
+            [ browse ]
+          </button>
           <button
             type="button"
             className="btn btn-primary"
             disabled={applying}
-            onClick={handleApply}
+            onClick={() => void handleApply()}
           >
             {applying ? "...exec" : "[ apply to repo ]"}
           </button>

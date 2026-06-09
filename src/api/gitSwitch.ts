@@ -3,6 +3,7 @@ import type {
   ActiveIdentityState,
   AppData,
   AppSettings,
+  DetectedRepo,
   GitIdentity,
   GitProfile,
 } from "../types";
@@ -13,6 +14,16 @@ export function getActiveIdentity(): Promise<ActiveIdentityState> {
 
 export function getRepoIdentity(repoPath: string): Promise<GitIdentity> {
   return invoke<GitIdentity>("get_repo_identity", { repoPath });
+}
+
+export function detectGitRepo(startPath?: string): Promise<DetectedRepo> {
+  return invoke<DetectedRepo>("detect_git_repo", { startPath });
+}
+
+export function detectSshKeyPath(
+  profileName: string,
+): Promise<string | null> {
+  return invoke<string | null>("detect_ssh_key_path", { profileName });
 }
 
 export function listProfiles(): Promise<AppData> {

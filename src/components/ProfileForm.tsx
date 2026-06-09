@@ -1,5 +1,8 @@
 import { useState } from "react";
+import { open } from "@tauri-apps/plugin-dialog";
+import { detectSshKeyPath } from "../api/gitSwitch";
 import type { GitProfile, ProfileFormValues } from "../types";
+import { invokeErrorMessage } from "../utils/errors";
 
 interface ProfileFormProps {
   initial?: GitProfile;
@@ -74,11 +77,7 @@ export function ProfileForm({
     try {
       await onSubmit(values);
     } catch (submitError) {
-      setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Could not save profile.",
-      );
+      setError(invokeErrorMessage(submitError, "Could not save profile."));
     } finally {
       setSaving(false);
     }
@@ -89,6 +88,47 @@ export function ProfileForm({
     value: ProfileFormValues[K],
   ) {
     setValues((current) => ({ ...current, [field]: value }));
+  }
+
+  async function handleDetectSshKey() {
+    setError("");
+
+    if (!values.name.trim()) {
+      setError("Enter a profile name first (used to find id_ed25519_<name>).");
+      return;
+    }
+
+    try {
+      const detected = await detectSshKeyPath(values.name.trim());
+      if (!detected) {
+        setError(
+          `No key found at ~/.ssh/id_ed25519_${values.name.trim().toLowerCase()}`,
+        );
+        return;
+      }
+
+      updateField("sshKey", detected);
+    } catch (detectError) {
+      setError(invokeErrorMessage(detectError, "Could not detect SSH key."));
+    }
+  }
+
+  async function handleBrowseSshKey() {
+    setError("");
+
+    try {
+      const selected = await open({
+        multiple: false,
+        directory: false,
+        title: "Select SSH private key",
+      });
+
+      if (typeof selected === "string") {
+        updateField("sshKey", selected);
+      }
+    } catch (browseError) {
+      setError(invokeErrorMessage(browseError, "Could not open file picker."));
+    }
   }
 
   return (
@@ -125,14 +165,42 @@ export function ProfileForm({
           />
         </Field>
 
-        <Field label="ssh key path" prompt="ssh>" optional>
-          <input
-            className="input"
-            value={values.sshKey}
-            onChange={(event) => updateField("sshKey", event.target.value)}
-            placeholder="C:\\path\\to\\private_key"
-          />
-        </Field>
+        <label className="field">
+          <span className="field-label">
+            ssh private key file<span className="opt"> --optional</span>
+          </span>
+          <span className="input-wrap">
+            <span className="prompt" aria-hidden="true">
+              ssh&gt;
+            </span>
+            <input
+              className="input"
+              value={values.sshKey}
+              onChange={(event) => updateField("sshKey", event.target.value)}
+              placeholder="C:\\Users\\you\\.ssh\\id_ed25519_goat"
+            />
+          </span>
+          <span className="hint">
+            // expects ~/.ssh/id_ed25519_&lt;profile-name&gt; — use [ detect ] or
+            [ browse ]
+          </span>
+          <div className="form-actions" style={{ borderTop: 0, paddingTop: 0 }}>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => void handleDetectSshKey()}
+            >
+              [ detect ]
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => void handleBrowseSshKey()}
+            >
+              [ browse ]
+            </button>
+          </div>
+        </label>
 
         <Field label="gpg signing key" prompt="gpg>" optional>
           <input

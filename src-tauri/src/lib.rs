@@ -1,9 +1,15 @@
 mod git;
 mod models;
+mod ssh;
 mod storage;
+mod switch;
+mod tray;
 
-use models::{ActiveIdentityState, AppData, GitIdentity, GitProfile};
+use std::path::PathBuf;
+
+use models::{ActiveIdentityState, AppData, DetectedRepo, GitIdentity, GitProfile};
 use storage::{find_profile, load_app_data, profile_matches_identity, save_app_data};
+use tauri::{Manager, Runtime, WindowEvent};
 use uuid::Uuid;
 
 #[tauri::command]
@@ -27,8 +33,59 @@ fn get_repo_identity(app: tauri::AppHandle, repo_path: String) -> Result<GitIden
 }
 
 #[tauri::command]
+fn detect_git_repo(
+    app: tauri::AppHandle,
+    start_path: Option<String>,
+) -> Result<DetectedRepo, String> {
+    let data = load_app_data(&app)?;
+    let start = match start_path {
+        Some(path) => PathBuf::from(path),
+        None => std::env::current_dir().map_err(|error| format!("Could not read cwd: {error}"))?,
+    };
+
+    let searched_from = start
+        .to_str()
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| start.display().to_string());
+
+    let repo_root = git::find_repo_root(&data.settings.git_executable, &start)?;
+
+    let Some(repo_path) = repo_root else {
+        return Ok(DetectedRepo {
+            repo_path: None,
+            identity: None,
+            searched_from,
+        });
+    };
+
+    let repo_path = repo_path
+        .to_str()
+        .map(|value| value.to_string())
+        .ok_or_else(|| "Repository path is not valid UTF-8".to_string())?;
+
+    let identity =
+        git::read_repo_identity(&data.settings.git_executable, &repo_path).ok();
+
+    Ok(DetectedRepo {
+        repo_path: Some(repo_path),
+        identity,
+        searched_from,
+    })
+}
+
+#[tauri::command]
 fn list_profiles(app: tauri::AppHandle) -> Result<AppData, String> {
     load_app_data(&app)
+}
+
+#[tauri::command]
+fn detect_ssh_key_path(profile_name: String) -> Result<Option<String>, String> {
+    let path = ssh::default_key_path_for_profile(&profile_name);
+    if path.exists() {
+        Ok(path.to_str().map(|value| value.to_string()))
+    } else {
+        Ok(None)
+    }
 }
 
 #[tauri::command]
@@ -59,6 +116,7 @@ fn create_profile(
 
     data.profiles.push(profile.clone());
     save_app_data(&app, &data)?;
+    tray::refresh_tray_menu(&app)?;
     Ok(profile)
 }
 
@@ -94,6 +152,12 @@ fn update_profile(
 
     let updated = profile.clone();
     save_app_data(&app, &data)?;
+
+    if data.active_profile_id.as_deref() == Some(profile_id.as_str()) {
+        switch::sync_active_profile_auth(&app)?;
+    }
+
+    tray::refresh_tray_menu(&app)?;
     Ok(updated)
 }
 
@@ -111,26 +175,13 @@ fn delete_profile(app: tauri::AppHandle, profile_id: String) -> Result<(), Strin
         data.active_profile_id = None;
     }
 
-    save_app_data(&app, &data)
+    save_app_data(&app, &data)?;
+    tray::refresh_tray_menu(&app)
 }
 
 #[tauri::command]
 fn switch_global_profile(app: tauri::AppHandle, profile_id: String) -> Result<GitIdentity, String> {
-    let mut data = load_app_data(&app)?;
-    let profile = find_profile(&data, &profile_id)
-        .ok_or_else(|| format!("Profile not found: {profile_id}"))?
-        .clone();
-
-    git::set_global_identity(
-        &data.settings.git_executable,
-        &profile.user_name,
-        &profile.user_email,
-    )?;
-
-    data.active_profile_id = Some(profile_id);
-    save_app_data(&app, &data)?;
-
-    git::read_global_identity(&data.settings.git_executable)
+    switch::perform_global_switch(&app, &profile_id)
 }
 
 #[tauri::command]
@@ -173,6 +224,7 @@ fn update_settings(
     data.settings.start_minimized = start_minimized;
 
     save_app_data(&app, &data)?;
+    switch::sync_active_profile_auth(&app)?;
     Ok(data.settings)
 }
 
@@ -194,13 +246,43 @@ fn resolve_active_profile(data: &AppData, global: &GitIdentity) -> Option<GitPro
         .cloned()
 }
 
+fn attach_close_to_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> Result<(), String> {
+    let window = app
+        .get_webview_window("main")
+        .ok_or("Main window not found")?;
+    let app_handle = app.clone();
+
+    window.on_window_event(move |event| {
+        if let WindowEvent::CloseRequested { api, .. } = event {
+            api.prevent_close();
+            if let Some(window) = app_handle.get_webview_window("main") {
+                let _ = window.hide();
+            }
+        }
+    });
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            tray::setup_tray(app)?;
+            attach_close_to_tray(app.handle())?;
+            if let Err(error) = switch::sync_active_profile_auth(app.handle()) {
+                eprintln!("auth sync on startup failed: {error}");
+            }
+            tray::apply_start_minimized(app.handle())?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             get_active_identity,
             get_repo_identity,
+            detect_git_repo,
+            detect_ssh_key_path,
             list_profiles,
             create_profile,
             update_profile,

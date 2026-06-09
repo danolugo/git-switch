@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::models::GitIdentity;
@@ -26,6 +26,32 @@ pub fn read_repo_identity(git_executable: &str, repo_path: &str) -> Result<GitId
         user_name,
         user_email,
     })
+}
+
+pub fn find_repo_root(git_executable: &str, start: &Path) -> Result<Option<PathBuf>, String> {
+    if !start.exists() {
+        return Err(format!("Path does not exist: {}", start.display()));
+    }
+
+    let output = Command::new(git_executable)
+        .args(["rev-parse", "--show-toplevel"])
+        .current_dir(start)
+        .output()
+        .map_err(|error| format!("Failed to run git: {error}"))?;
+
+    if output.status.success() {
+        let root = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if root.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(PathBuf::from(root)))
+        }
+    } else if output.status.code() == Some(128) || output.status.code() == Some(1) {
+        Ok(None)
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        Err(format!("git rev-parse failed: {stderr}"))
+    }
 }
 
 pub fn set_global_identity(
@@ -79,6 +105,24 @@ fn read_config_value(
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
         Err(format!("git config --get {key} failed: {stderr}"))
+    }
+}
+
+pub fn set_global_config(git_executable: &str, key: &str, value: &str) -> Result<(), String> {
+    set_config_value(git_executable, None, key, value)
+}
+
+pub fn unset_global_config(git_executable: &str, key: &str) -> Result<(), String> {
+    let output = Command::new(git_executable)
+        .args(["config", "--global", "--unset-all", key])
+        .output()
+        .map_err(|error| format!("Failed to run git: {error}"))?;
+
+    if output.status.success() || output.status.code() == Some(5) {
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        Err(format!("git config --unset-all {key} failed: {stderr}"))
     }
 }
 

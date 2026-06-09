@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { ErrorBanner } from "../components/ErrorBanner";
 import { ProfileForm } from "../components/ProfileForm";
 import { TerminalWindow } from "../components/TerminalWindow";
 import type { GitProfile, ProfileFormValues } from "../types";
+import { invokeErrorMessage } from "../utils/errors";
 
 interface ProfilesProps {
   profiles: GitProfile[];
@@ -25,11 +27,7 @@ export function Profiles({
     try {
       await onDelete(profileId);
     } catch (deleteError) {
-      setError(
-        deleteError instanceof Error
-          ? deleteError.message
-          : "Could not delete profile.",
-      );
+      setError(invokeErrorMessage(deleteError, "Could not delete profile."));
     }
   }
 
@@ -56,7 +54,7 @@ export function Profiles({
         ) : null}
       </header>
 
-      {error ? <div className="banner banner-error">{error}</div> : null}
+      {error ? <ErrorBanner message={error} /> : null}
 
       {mode === "create" ? (
         <TerminalWindow title="new profile" flag="--create">

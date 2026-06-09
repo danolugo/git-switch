@@ -32,7 +32,7 @@ export function Layout({ currentView, onNavigate, children }: LayoutProps) {
             </pre>
             <div className="brand-meta">
               <p className="brand-title">git-switch</p>
-              <p className="brand-status">[ ONLINE ] v0.1.0</p>
+              <p className="brand-status">[ ONLINE ] v0.2.0</p>
             </div>
           </div>
 

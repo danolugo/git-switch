@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ErrorBanner } from "../components/ErrorBanner";
 import { TerminalWindow } from "../components/TerminalWindow";
 import type { AppSettings } from "../types";
 
@@ -17,8 +18,7 @@ export function Settings({ settings, onSave }: SettingsProps) {
     setDraft(settings);
   }, [settings]);
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  async function saveDraft() {
     setSaving(true);
     setError("");
     setSaved(false);
@@ -35,6 +35,11 @@ export function Settings({ settings, onSave }: SettingsProps) {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    await saveDraft();
   }
 
   return (
@@ -68,6 +73,11 @@ export function Settings({ settings, onSave }: SettingsProps) {
             </span>
           </label>
 
+          <p className="hint">
+            // when enabled, switching profiles updates ~/.ssh/config and rewrites
+            https://github.com/ to SSH using that profile&apos;s private key file
+          </p>
+
           <hr className="divider" />
 
           <label className="check-line">
@@ -82,7 +92,7 @@ export function Settings({ settings, onSave }: SettingsProps) {
               }
             />
             <span className="check-box" aria-hidden="true" />
-            enable ssh key switching <span className="muted">// v0.3</span>
+            enable ssh authentication switching
           </label>
 
           <label className="check-line">
@@ -97,10 +107,15 @@ export function Settings({ settings, onSave }: SettingsProps) {
               }
             />
             <span className="check-box" aria-hidden="true" />
-            start minimized to tray <span className="muted">// v0.2</span>
+            start minimized to tray
           </label>
 
-          {error ? <div className="banner banner-error">{error}</div> : null}
+          {error ? (
+            <ErrorBanner
+              message={error}
+              onRetry={() => void saveDraft()}
+            />
+          ) : null}
           {saved ? <div className="banner banner-ok">settings saved</div> : null}
 
           <div className="form-actions">
