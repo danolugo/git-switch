@@ -4,6 +4,7 @@ import type { ViewName } from "../types";
 interface LayoutProps {
   currentView: ViewName;
   onNavigate: (view: ViewName) => void;
+  onEnterWidget: () => void;
   children: ReactNode;
 }
 
@@ -20,7 +21,12 @@ const LOGO = [
   "└─┘┴ ┴ ────└─┘└┴┘┴ ┴└─┘┴ ┴",
 ].join("\n");
 
-export function Layout({ currentView, onNavigate, children }: LayoutProps) {
+export function Layout({
+  currentView,
+  onNavigate,
+  onEnterWidget,
+  children,
+}: LayoutProps) {
   return (
     <>
       <div className="crt" aria-hidden="true" />
@@ -32,7 +38,7 @@ export function Layout({ currentView, onNavigate, children }: LayoutProps) {
             </pre>
             <div className="brand-meta">
               <p className="brand-title">git-switch</p>
-              <p className="brand-status">[ ONLINE ] v0.2.0</p>
+              <p className="brand-status">[ ONLINE ] v0.3.0</p>
             </div>
           </div>
 
@@ -50,6 +56,16 @@ export function Layout({ currentView, onNavigate, children }: LayoutProps) {
               </button>
             ))}
           </nav>
+
+          <div className="sidebar-footer">
+            <button
+              type="button"
+              className="nav-item widget-toggle"
+              onClick={onEnterWidget}
+            >
+              [ widget mode ]
+            </button>
+          </div>
         </aside>
 
         <main className="content">{children}</main>

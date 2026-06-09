@@ -1,4 +1,5 @@
 import { ErrorBanner } from "../components/ErrorBanner";
+import { ProfileBadge } from "../components/ProfileBadge";
 import { ProgressBar } from "../components/ProgressBar";
 import { TerminalWindow } from "../components/TerminalWindow";
 import { Typewriter } from "../components/Typewriter";
@@ -20,17 +21,6 @@ function statusChip(set: boolean) {
     <span className="status status-ok">[OK]</span>
   ) : (
     <span className="status status-err">[ERR]</span>
-  );
-}
-
-function profileBadge(profile: GitProfile) {
-  const color = profile.color ?? "#33ff00";
-  const icon = profile.icon ?? profile.name.slice(0, 2).toLowerCase();
-
-  return (
-    <span className="profile-badge sm" style={{ borderColor: color, color }}>
-      {icon}
-    </span>
   );
 }
 
@@ -87,7 +77,9 @@ export function Dashboard({
           ) : (
             <div className="id-block">
               <div className="profile-card-head">
-                {activeProfile ? profileBadge(activeProfile) : null}
+                {activeProfile ? (
+                  <ProfileBadge profile={activeProfile} size="sm" />
+                ) : null}
                 <div>
                   <p className="id-eyebrow">currently using</p>
                   <h2 className="id-name">
@@ -163,7 +155,7 @@ export function Dashboard({
                     onClick={() => onSwitch(profile.id)}
                   >
                     <span className="switch-name">
-                      {profileBadge(profile)}
+                      <ProfileBadge profile={profile} size="sm" />
                       <span aria-hidden="true">{isActive ? ">" : "$"}</span>
                       {profile.name}
                       <span className="switch-tag">

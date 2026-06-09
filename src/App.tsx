@@ -12,6 +12,7 @@ import {
   updateSettings,
 } from "./api/gitSwitch";
 import { Layout } from "./components/Layout";
+import { Widget } from "./components/Widget";
 import { Dashboard } from "./pages/Dashboard";
 import { Profiles } from "./pages/Profiles";
 import { Repository } from "./pages/Repository";
@@ -25,6 +26,11 @@ import type {
   ViewName,
 } from "./types";
 import { invokeErrorMessage } from "./utils/errors";
+import {
+  applyWindowMode,
+  readWidgetModePreference,
+  writeWidgetModePreference,
+} from "./utils/windowMode";
 import "./App.css";
 
 function optionalField(value: string): string | undefined {
@@ -54,6 +60,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [widgetMode, setWidgetMode] = useState(readWidgetModePreference);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -80,6 +87,16 @@ function App() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    void applyWindowMode(widgetMode);
+  }, []);
+
+  async function setWidgetModeEnabled(enabled: boolean) {
+    writeWidgetModePreference(enabled);
+    setWidgetMode(enabled);
+    await applyWindowMode(enabled);
+  }
 
   useEffect(() => {
     const unlisteners: Array<Promise<() => void>> = [];
@@ -159,8 +176,26 @@ function App() {
     await refresh();
   }
 
+  if (widgetMode) {
+    return (
+      <Widget
+        identity={identity}
+        profiles={profiles}
+        loading={loading}
+        switchingId={switchingId}
+        error={error}
+        onSwitch={(profileId) => void handleSwitch(profileId)}
+        onExpand={() => void setWidgetModeEnabled(false)}
+      />
+    );
+  }
+
   return (
-    <Layout currentView={view} onNavigate={setView}>
+    <Layout
+      currentView={view}
+      onNavigate={setView}
+      onEnterWidget={() => void setWidgetModeEnabled(true)}
+    >
       {view === "dashboard" ? (
         <Dashboard
           identity={identity}
